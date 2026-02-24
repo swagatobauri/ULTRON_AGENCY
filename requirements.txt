@@ -4,6 +4,8 @@ python-dotenv==1.2.1
 gunicorn==25.1.0
 langchain-groq==1.1.2
 langgraph==1.0.9
+langchain-community==0.4.1
 duckduckgo-search==8.1.1
 requests==2.32.5
 python-telegram-bot==22.6
+APScheduler==3.11.2
