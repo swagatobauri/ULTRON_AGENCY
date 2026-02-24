@@ -154,7 +154,7 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('workflow')} className={styles.navLink}>Workflow</button>
             <button onClick={() => scrollTo('contact')} className={styles.navLink}>Contact</button>
           </div>
-          <a href="http://127.0.0.1:5000/dashboard" className={styles.navCta}>Launch Dashboard</a>
+          <a href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://127.0.0.1:5000/dashboard"} className={styles.navCta}>Launch Dashboard</a>
         </div>
       </nav>
 
@@ -208,7 +208,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.8 }}
           >
-            <a href="http://127.0.0.1:5000/dashboard" className={styles.btnPrimary}>
+            <a href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://127.0.0.1:5000/dashboard"} className={styles.btnPrimary}>
               <span>Get Started</span>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -414,7 +414,7 @@ export default function LandingPage() {
             <span className="gradient-text">AI Content Agency?</span>
           </h2>
           <p className={styles.ctaDesc}>One task. Six agents. Published to your channel in seconds.</p>
-          <a href="http://127.0.0.1:5000/dashboard" className={styles.btnPrimaryLarge}>
+          <a href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://127.0.0.1:5000/dashboard"} className={styles.btnPrimaryLarge}>
             <span>Launch Dashboard</span>
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
