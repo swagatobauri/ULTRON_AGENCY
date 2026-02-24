@@ -132,8 +132,33 @@ def dashboard():
     return render_template("index.html")
 
 
+# Custom rate limiter to avoid Gunicorn thread crashes
+rate_limits = {}
+
+def check_rate_limit(ip):
+    now = datetime.now()
+    if ip not in rate_limits:
+        rate_limits[ip] = []
+    
+    # keep only requests from the last 24 hours (86400 seconds)
+    rate_limits[ip] = [t for t in rate_limits[ip] if (now - t).total_seconds() < 86400]
+    
+    if len(rate_limits[ip]) >= 3:
+        return "Rate limit exceeded: 3 per 1 day"
+        
+    if rate_limits[ip] and (now - rate_limits[ip][-1]).total_seconds() < 60:
+        return "Rate limit exceeded: 1 per 1 minute"
+        
+    rate_limits[ip].append(now)
+    return None
+
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
+    client_ip = request.remote_addr
+    limit_error = check_rate_limit(client_ip)
+    if limit_error:
+        return jsonify({"error": limit_error}), 429
+
     data = request.json
     task = data.get("task", "").strip()
 
