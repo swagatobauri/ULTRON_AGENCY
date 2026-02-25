@@ -1,6 +1,7 @@
 // ─── State ───
 let currentRunId = null;
 let pollInterval = null;
+let lastLogIndex = 0;
 
 // ─── Generate Content ───
 async function startGeneration() {
@@ -25,6 +26,7 @@ async function startGeneration() {
     const pipelineCard = document.getElementById('pipelineCard');
     pipelineCard.style.display = 'block';
     resetPipelineStages();
+    resetActivityFeed();
 
     // hide previous results
     document.getElementById('messagesCard').style.display = 'none';
@@ -67,17 +69,23 @@ function startPolling() {
             const data = await res.json();
 
             updatePipelineUI(data);
+            fetchActivityLogs();
 
             if (data.status === 'awaiting_approval') {
                 clearInterval(pollInterval);
                 pollInterval = null;
                 showMessages(data.messages);
                 resetButton();
+                // one final fetch to get any remaining logs
+                fetchActivityLogs();
+                const liveIndicator = document.getElementById('activityLiveIndicator');
+                if (liveIndicator) liveIndicator.style.display = 'none';
             } else if (data.status === 'error') {
                 clearInterval(pollInterval);
                 pollInterval = null;
                 showError(data.error || 'Pipeline failed');
                 resetButton();
+                fetchActivityLogs();
             }
 
         } catch (err) {
@@ -113,6 +121,65 @@ function resetPipelineStages() {
         el.className = 'pipeline-stage';
     });
     document.querySelectorAll('.pipeline-connector').forEach(c => c.classList.remove('active'));
+}
+
+// ─── Activity Feed ───
+async function fetchActivityLogs() {
+    if (!currentRunId) return;
+
+    try {
+        const res = await fetch(`/api/logs/${currentRunId}?after=${lastLogIndex}`);
+        const data = await res.json();
+
+        if (data.logs && data.logs.length > 0) {
+            const feed = document.getElementById('activityFeed');
+
+            // clear placeholder on first entry
+            const empty = feed.querySelector('.activity-empty');
+            if (empty) empty.remove();
+
+            data.logs.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = `activity-entry type-${entry.type}`;
+                row.style.animationDelay = '0s';
+
+                const icon = {
+                    'llm_call': '🧠',
+                    'web_search': '🔍',
+                    'tool_use': '🔧',
+                    'decision': '⚖️',
+                    'handoff': '➡️',
+                    'info': '📋',
+                }[entry.type] || '📋';
+
+                row.innerHTML = `
+                    <span class="activity-time">[${entry.timestamp}]</span>
+                    <span class="activity-icon">${icon}</span>
+                    <span class="activity-agent">${escapeHtml(entry.agent)}</span>
+                    <span class="activity-arrow">→</span>
+                    <span class="activity-action">${escapeHtml(entry.action)}</span>
+                `;
+
+                feed.appendChild(row);
+            });
+
+            lastLogIndex = data.total;
+
+            // auto-scroll to bottom
+            feed.scrollTop = feed.scrollHeight;
+        }
+    } catch (err) {
+        console.error('Activity log fetch error:', err);
+    }
+}
+
+function resetActivityFeed() {
+    lastLogIndex = 0;
+    const feed = document.getElementById('activityFeed');
+    feed.innerHTML = '<div class="activity-empty">Waiting for pipeline to start...</div>';
+    feed.scrollTop = 0;
+    const liveIndicator = document.getElementById('activityLiveIndicator');
+    if (liveIndicator) liveIndicator.style.display = 'flex';
 }
 
 // ─── Show Generated Messages ───
@@ -209,6 +276,7 @@ async function regenerateMessages() {
     document.getElementById('messagesCard').style.display = 'none';
     document.getElementById('postResult').style.display = 'none';
     resetPipelineStages();
+    resetActivityFeed();
 
     try {
         const res = await fetch(`/api/regenerate/${currentRunId}`, { method: 'POST' });

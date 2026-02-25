@@ -1,6 +1,6 @@
 from config import llm
 from utils.state import AgentState
-from utils.helpers import log_agent_action, create_error_message, validate_state_field
+from utils.helpers import log_agent_action, create_error_message, validate_state_field, log_activity
 from langchain_core.messages import HumanMessage, SystemMessage
 from googlesearch import search
 
@@ -55,12 +55,15 @@ Create a detailed research brief following the format in your instructions.
 """)
 
         log_agent_action("researcher", "Analyzing research and building brief")
+        log_activity("Researcher", "Building research brief with Llama 3.3 70B", "Combining search results + task context", "llm_call")
 
         response = llm.invoke([system_prompt, human_prompt])
 
         research_results = response.content
 
         log_agent_action("researcher", "Research complete", f"Brief length: {len(research_results)} characters")
+        log_activity("Researcher", f"Research brief complete ({len(research_results)} chars)", "", "info")
+        log_activity("Researcher", "Handing off to Content Creator", "", "handoff")
 
         return {
             **state,
@@ -86,22 +89,28 @@ def _search_for_context(task: str, company_info: str) -> str:
 
     try:
         query1 = f"Telegram channel marketing trends {company_info[:50]}"
+        log_activity("Researcher", f'Searching Google: "{query1}"', "", "web_search")
         result1 = wrapped_search(query1)
         search_results += f"SEARCH 1 - Industry Trends:\n{result1}\n\n"
+        log_activity("Researcher", "Search 1 complete — industry trends found", "", "web_search")
     except Exception as e:
         search_results += f"SEARCH 1 failed: {str(e)}\n\n"
 
     try:
         query2 = f"best Telegram content strategies {task[:50]}"
+        log_activity("Researcher", f'Searching Google: "{query2}"', "", "web_search")
         result2 = wrapped_search(query2)
         search_results += f"SEARCH 2 - Content Strategies:\n{result2}\n\n"
+        log_activity("Researcher", "Search 2 complete — content strategies found", "", "web_search")
     except Exception as e:
         search_results += f"SEARCH 2 failed: {str(e)}\n\n"
 
     try:
         query3 = f"Telegram channel engagement tips {company_info[:30]} 2024"
+        log_activity("Researcher", f'Searching Google: "{query3}"', "", "web_search")
         result3 = wrapped_search(query3)
         search_results += f"SEARCH 3 - Engagement Tips:\n{result3}\n\n"
+        log_activity("Researcher", "Search 3 complete — engagement tips found", "", "web_search")
     except Exception as e:
         search_results += f"SEARCH 3 failed: {str(e)}\n\n"
 

@@ -1,6 +1,6 @@
 from config import llm
 from utils.state import AgentState
-from utils.helpers import log_agent_action, validate_state_field, create_error_message
+from utils.helpers import log_agent_action, validate_state_field, create_error_message, log_activity
 from langchain_core.messages import HumanMessage, SystemMessage
 
 def manager_agent(state: AgentState) -> AgentState:
@@ -45,6 +45,7 @@ Remember to follow the exact response format specified.
 """)
         
         log_agent_action("manager", "Sending task to Groq LLM for analysis")
+        log_activity("Manager", "Sending task to Llama 3.3 70B for analysis", f"Task: {task[:80]}...", "llm_call")
         
         response = llm.invoke([system_prompt, human_prompt])
         
@@ -80,6 +81,8 @@ Remember to follow the exact response format specified.
         final_task = f"{task}\n\nCONTENT BRIEF: {content_brief}"
         
         log_agent_action("manager", "Task analysis complete", f"Company: {company_info[:100]}...")
+        log_activity("Manager", f"Extracted company info: {company_info[:120]}", "", "info")
+        log_activity("Manager", "Handing off to Researcher", "", "handoff")
         
         return {
             **state,

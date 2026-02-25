@@ -1,6 +1,6 @@
 from config import fast_llm
 from utils.state import AgentState
-from utils.helpers import log_agent_action, create_error_message
+from utils.helpers import log_agent_action, create_error_message, log_activity
 from langchain_core.messages import HumanMessage, SystemMessage
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
@@ -62,6 +62,8 @@ Return the JSON schedule for exactly {num_messages} messages.
 """)
 
         log_agent_action("scheduler", f"Planning schedule for {num_messages} messages")
+        log_activity("Scheduler", f"Planning optimal schedule for {num_messages} messages", "", "info")
+        log_activity("Scheduler", "Calling Llama 3.1 8B for schedule generation", "", "llm_call")
 
         response = fast_llm.invoke([system_prompt, human_prompt])
 
@@ -94,6 +96,9 @@ Return the JSON schedule for exactly {num_messages} messages.
             "All messages scheduled successfully",
             f"Total scheduled: {len(scheduled_times)}"
         )
+        times_summary = ", ".join(scheduled_times[:5])
+        log_activity("Scheduler", f"Scheduled {len(scheduled_times)} messages: {times_summary}", "", "tool_use")
+        log_activity("Scheduler", "Pipeline complete — awaiting your approval", "", "info")
 
         return {
             **state,

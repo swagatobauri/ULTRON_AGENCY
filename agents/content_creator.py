@@ -4,7 +4,8 @@ from utils.helpers import (
     log_agent_action,
     create_error_message,
     validate_state_field,
-    parse_numbered_list
+    parse_numbered_list,
+    log_activity
 )
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -33,6 +34,7 @@ def content_creator_agent(state: AgentState) -> AgentState:
                 "Revision mode activated",
                 f"Incorporating feedback: {feedback[:100]}..."
             )
+            log_activity("Content Creator", "Revision mode — rewriting messages with Critic's feedback", f"Feedback: {feedback[:100]}...", "info")
 
         system_prompt = SystemMessage(content="""
 You are the Content Creator Agent of ULTRON, an AI-powered social media agency.
@@ -94,6 +96,7 @@ Number each message clearly.
 """)
 
         log_agent_action("content_creator", "Sending to Groq LLM for message generation")
+        log_activity("Content Creator", "Generating messages with Llama 3.3 70B", "Using research brief + brand context" if not is_revision else "Applying Critic's feedback to revise", "llm_call")
 
         response = llm.invoke([system_prompt, human_prompt])
 
@@ -119,6 +122,9 @@ Number each message clearly.
             "Message creation complete",
             f"Generated {len(messages)} messages"
         )
+        avg_len = sum(len(m) for m in messages) // max(len(messages), 1)
+        log_activity("Content Creator", f"Generated {len(messages)} messages (avg {avg_len:,} chars each)", "", "info")
+        log_activity("Content Creator", "Handing off to Critic for quality review", "", "handoff")
 
         return {
             **state,

@@ -4,7 +4,8 @@ from utils.helpers import (
     log_agent_action,
     create_error_message,
     validate_state_field,
-    format_posts_for_review
+    format_posts_for_review,
+    log_activity
 )
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -32,6 +33,7 @@ def critic_agent(state: AgentState) -> AgentState:
                 "Max revision cycles reached",
                 f"Approving after {revision_count} revisions"
             )
+            log_activity("Critic", f"Max revision cycles reached ({revision_count}) — auto-approving", "", "decision")
             return {
                 **state,
                 "approved": True,
@@ -80,6 +82,7 @@ Apply your highest Telegram content standards.
 """)
 
         log_agent_action("critic", "Sending messages to Groq LLM for review")
+        log_activity("Critic", f"Reviewing {len(messages)} messages on 6 quality criteria", "Hook, clarity, engagement, brand alignment, formatting, character count", "llm_call")
 
         response = llm.invoke([system_prompt, human_prompt])
 
@@ -94,6 +97,8 @@ Apply your highest Telegram content standards.
         )
 
         if approved:
+            log_activity("Critic", f"Score: {score}/10 — Content APPROVED ✅", "", "decision")
+            log_activity("Critic", "Handing off to Scheduler", "", "handoff")
             return {
                 **state,
                 "approved": True,
@@ -102,6 +107,8 @@ Apply your highest Telegram content standards.
                 "error": None
             }
         else:
+            log_activity("Critic", f"Score: {score}/10 — Needs revision (cycle {revision_count + 1}/{MAX_REVISION_CYCLES})", f"Feedback: {feedback[:120]}...", "decision")
+            log_activity("Critic", "Sending back to Content Creator with feedback", "", "handoff")
             return {
                 **state,
                 "approved": False,

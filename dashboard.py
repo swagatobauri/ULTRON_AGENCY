@@ -15,6 +15,7 @@ from agents.content_creator import content_creator_agent
 from agents.critic import critic_agent
 from agents.scheduler import scheduler_agent
 from config import send_telegram_message, TELEGRAM_CHAT_ID
+from utils.helpers import log_activity, set_current_run_id, get_activity_logs
 
 load_dotenv()
 
@@ -89,6 +90,7 @@ def build_tracked_pipeline(run_id: str):
 
 def run_pipeline_async(run_id: str, task: str):
     """Run pipeline in background thread."""
+    set_current_run_id(run_id)
     try:
         initial_state: AgentState = {
             "task": task,
@@ -197,6 +199,13 @@ def api_status(run_id):
     if run_id not in pipeline_runs:
         return jsonify({"error": "Run not found"}), 404
     return jsonify(pipeline_runs[run_id])
+
+
+@app.route("/api/logs/<run_id>")
+def api_logs(run_id):
+    after = request.args.get("after", 0, type=int)
+    logs = get_activity_logs(run_id, after=after)
+    return jsonify({"logs": logs, "total": after + len(logs)})
 
 
 @app.route("/api/approve/<run_id>", methods=["POST"])

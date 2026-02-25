@@ -1,5 +1,68 @@
 from datetime import datetime
 from typing import Any
+import threading
+
+# thread-safe activity log store — keyed by run_id
+_activity_logs = {}
+_logs_lock = threading.Lock()
+
+# thread-local storage to pass run_id into agents without changing signatures
+_thread_context = threading.local()
+
+
+def set_current_run_id(run_id: str) -> None:
+    _thread_context.run_id = run_id
+
+
+def get_current_run_id() -> str:
+    return getattr(_thread_context, "run_id", None)
+
+
+def log_activity(agent: str, action: str, detail: str = "", log_type: str = "info") -> None:
+    """Log an activity entry visible in the live dashboard feed.
+
+    log_type can be: llm_call, web_search, tool_use, decision, handoff, info
+    """
+    run_id = get_current_run_id()
+    timestamp = datetime.now().strftime("%H:%M:%S")
+
+    entry = {
+        "timestamp": timestamp,
+        "agent": agent,
+        "action": action,
+        "detail": detail,
+        "type": log_type,
+    }
+
+    # also print to console
+    icon = {
+        "llm_call": "🧠",
+        "web_search": "🔍",
+        "tool_use": "🔧",
+        "decision": "⚖️",
+        "handoff": "➡️",
+        "info": "📋",
+    }.get(log_type, "📋")
+
+    print(f"[{timestamp}] {icon} {agent.upper()} → {action}" + (f" | {detail}" if detail else ""))
+
+    if run_id:
+        with _logs_lock:
+            if run_id not in _activity_logs:
+                _activity_logs[run_id] = []
+            _activity_logs[run_id].append(entry)
+
+
+def get_activity_logs(run_id: str, after: int = 0) -> list:
+    with _logs_lock:
+        logs = _activity_logs.get(run_id, [])
+        return logs[after:]
+
+
+def clear_activity_logs(run_id: str) -> None:
+    with _logs_lock:
+        _activity_logs.pop(run_id, None)
+
 
 def log_agent_action(agent_name: str, action: str, detail: str = "") -> None:
     timestamp = datetime.now().strftime("%H:%M:%S")
