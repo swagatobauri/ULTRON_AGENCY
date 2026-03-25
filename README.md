@@ -6,6 +6,12 @@ Built with **LangGraph** for agent orchestration and **Groq's Llama 3.3 70B** fo
 
 ---
 
+## Preview
+
+<p align="center">
+  <img src="assets/screenrecording/livepreview.gif" alt="Live Preview" width="800"/>
+</p>
+
 ## What It Does
 
 Give ULTRON a simple prompt like:
